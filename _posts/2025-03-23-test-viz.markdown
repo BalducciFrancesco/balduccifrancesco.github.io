@@ -1,0 +1,21 @@
+---
+layout: post
+title:  "Testing some viz"
+date:   2025-03-23 16:12:00 +0100
+categories: dataviz
+---
+
+# Testing out latex
+
+$$ \nabla_\boldsymbol{x} J(\boldsymbol{x}) $$
+
+# Testing out static graphic
+
+![Crime yearly trend for different categories](/assets/images/plot1.png)
+Crime trends vary significantly based on type. Robbery remains relatively steady, while larceny theft rises significantly from 2013. From the same year, drug offenses and stolen property decline. Prostitution experiences the greatest decrease, becoming the crime category with the lowest numbers up to recent days.
+
+The plot showing crime counts independently of the category, seems to indicate that the crime level is relatively steady, on the contrary when we look at each individual crime count chart we see that it widely depends on the crime.
+
+# Testing out interactive Bokeh viz
+
+<iframe src="/assets/templates/plot1.html" width="800" height="300" frameBorder=0></iframe>
