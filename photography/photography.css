@@ -21,8 +21,8 @@ body {
 }
 
 main {
-    max-width: 60vw;
-    margin:auto;
+    max-width: 80vw;
+    margin: auto;
 }
 
 img, video {
@@ -44,5 +44,9 @@ img, video {
 @media (min-width: 1024px) {
     img, video {
         max-height: 80vh;
+    }
+
+    main {
+        max-width: 60vw;
     }
 }
