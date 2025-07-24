@@ -31,16 +31,32 @@ main {
     border-radius: 100px; */
 }
 
+#links {
+    max-width: 380px;
+    margin: auto;
+    margin-bottom: 16px;
+}
+
+.gh-link-container {
+    display: flex;
+    position: relative;
+    width: 100%;
+    align-items: center;
+}
+
 .link-button {
     border: 1px solid black;
     text-align: center;
-    width: 380px;
+    width: 100%;
     padding: 12px;
     background-image: linear-gradient(to top, #4d4d4d 50%, #fff 50%);
     color: black;
     background-size: 100% 200%;
     background-position: top;
     transition: background-position 0.5s ease-in-out, color 0.5s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .link-button:hover {
@@ -48,9 +64,27 @@ main {
     color: white;
 }
 
-.gh-button {
+.gh-link-button {
     position: absolute;
     right: -35px;
     width: auto;
     font-size: 25px;
+    /* center the icon */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
+@media (max-width: 450px) {
+    .gh-link-container {
+        align-items: stretch;
+    }
+
+    .gh-link-button {
+        position: static;
+        margin-left: 8px;
+        padding-inline: 8px;
+        border: 1px solid black;
+    }
+}
+
