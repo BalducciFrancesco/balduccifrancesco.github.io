@@ -31,7 +31,7 @@ main {
     border-radius: 100px; */
 }
 
-#links {
+.links {
     max-width: 380px;
     margin: auto;
     margin-bottom: 16px;
