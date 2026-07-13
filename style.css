@@ -12,12 +12,22 @@
     font-style: italic;
 }
 
+:root {
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --expand-dur: 0.45s;
+    --glass-bg: rgba(255, 255, 255, 0.42);
+    --glass-bg-open: rgba(255, 255, 255, 0.58);
+    --glass-border: rgba(255, 255, 255, 0.65);
+    --glass-blur: blur(16px) saturate(170%);
+}
+
 body {
     font-family: "Urbanist", sans-serif;
     font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* background-color: #f1f1f1; */
+    background: linear-gradient(160deg, #f4f4f5 0%, #e9ecef 45%, #f0f1f3 100%);
+    min-height: 100vh;
 }
 
 main {
@@ -25,66 +35,201 @@ main {
 }
 
 .navbar {
-    background-color: #fafafa;
+    background: rgba(250, 250, 250, 0.72);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
     box-shadow: 0 5px 75px 2px #b6b6b64f;
-    /* margin: 32px 24px;
-    border-radius: 100px; */
 }
 
 .links {
-    max-width: 450px;
+    max-width: 640px;
+    width: 100%;
     margin: auto;
-    margin-bottom: 16px;
+    margin-bottom: 40px;
 }
 
-.gh-link-container {
-    display: flex;
-    position: relative;
+.project-card {
     width: 100%;
-    align-items: center;
+    box-sizing: border-box;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    overflow: hidden;
+    transition: background var(--expand-dur) var(--ease), box-shadow var(--expand-dur) var(--ease);
 }
 
-.link-button {
-    border: 1px solid black;
+.project-card[open] {
+    background: var(--glass-bg-open);
+    box-shadow:
+        inset 4px 0 0 rgba(77, 77, 77, 0.45),
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.project-card[open] .project-body {
+    cursor: pointer;
+}
+
+.project-summary {
+    display: grid;
+    grid-template-columns: 36px 1fr 20px;
+    grid-template-rows: auto auto;
+    column-gap: 16px;
+    row-gap: 10px;
+    padding: 18px 20px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.project-summary:hover {
+    background-color: rgba(255, 255, 255, 0.28);
+}
+
+.project-card[open] .project-summary:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+.project-summary::-webkit-details-marker {
+    display: none;
+}
+
+.project-icon {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: center;
+    font-size: 22px;
     text-align: center;
-    width: 100%;
-    padding: 12px;
-    background-image: linear-gradient(to top, #4d4d4d 50%, #fff 50%);
-    color: black;
-    background-size: 100% 200%;
-    background-position: top;
-    transition: background-position 0.5s ease-in-out, color 0.5s;
+    color: rgba(60, 60, 60, 0.85);
+}
+
+.project-title {
+    grid-column: 2;
+    grid-row: 1;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #1a1a1a;
+}
+
+.project-keywords {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.keyword {
+    padding: 3px 8px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    color: rgba(50, 50, 50, 0.85);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.project-chevron {
+    grid-column: 3;
+    grid-row: 1 / -1;
+    align-self: center;
+    font-size: 12px;
+    color: rgba(60, 60, 60, 0.7);
+    transition: transform var(--expand-dur) var(--ease);
+}
+
+.project-card[open] .project-chevron {
+    transform: rotate(180deg);
+}
+
+.project-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--expand-dur) var(--ease);
+}
+
+.project-card[open] .project-body {
+    grid-template-rows: 1fr;
+}
+
+.project-body-inner {
+    overflow: hidden;
+    min-height: 0;
+    padding: 0 20px 0 30px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+        opacity var(--expand-dur) var(--ease),
+        transform var(--expand-dur) var(--ease),
+        padding var(--expand-dur) var(--ease);
+}
+
+.project-card[open] .project-body-inner {
+    padding: 4px 20px 20px 30px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.project-description {
+    margin: 0 0 16px;
+    line-height: 1.65;
+    color: rgba(30, 30, 30, 0.88);
+}
+
+.project-links {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.project-links a {
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.45);
+    color: #2a2a2a;
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.project-links a:hover {
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    color: #1a1a1a;
+    transform: translateY(-1px);
+}
+
+.project-links .link-button {
+    flex: 1;
+    text-align: center;
+    padding: 11px 16px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.link-button:hover {
-    background-position: bottom;
-    color: white;
-}
-
-.gh-link-button {
-    position: absolute;
-    right: -35px;
-    width: auto;
-    font-size: 25px;
-    /* center the icon */
+.project-links .gh-link-button {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 0 16px;
+    font-size: 20px;
 }
 
 @media (max-width: 450px) {
-    .gh-link-container {
-        align-items: stretch;
-    }
-
-    .gh-link-button {
-        position: static;
-        margin-left: 8px;
-        padding-inline: 8px;
-        border: 1px solid black;
+    .project-summary {
+        column-gap: 12px;
+        row-gap: 8px;
+        padding: 16px;
     }
 }
-
