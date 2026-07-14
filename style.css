@@ -179,6 +179,7 @@ main {
 .project-description {
     margin: 0 0 16px;
     line-height: 1.65;
+    white-space: preserve-breaks;
     color: rgba(30, 30, 30, 0.88);
 }
 
