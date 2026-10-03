@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Build the photo gallery: resize originals, read their EXIF, write gallery.json.
+"""Build the photo gallery: strip GPS, read EXIF, make thumbnails, write gallery.json.
 
-Usage:
-    pip install pillow
-    python3 photography/build_gallery.py [originals_dir]
+Runs automatically on GitHub (.github/workflows/gallery.yml) whenever photos or
+albums.json change. To run it locally instead:
+    pip install pillow            # plus exiftool, which removes GPS data
+    python3 photography/build_gallery.py
 
-Originals live in photography/gallery/originals/ (git-ignored), one folder per
-category and one sub-folder per album:
+Photos go in photography/gallery/full/, one folder per category and one
+sub-folder per album. They are shown as they are when opened fullscreen:
 
-    originals/
+    full/
         Portraits/
             Anna in Nyhavn/       <- album, its folder name is the default title
                 IMG_0001.jpg
@@ -16,29 +17,30 @@ category and one sub-folder per album:
             Roskilde 2025/
                 ...
 
-For every photo the script writes
-    gallery/full/<album>/<name>.jpg   long edge <= FULL_SIZE, shown fullscreen
-    gallery/thumbs/<name>.jpg         height <= THUMB_HEIGHT, shown in the grid
-Both copies are re-encoded without metadata, so GPS data never gets published.
-
-Two JSON files come out of it:
-    gallery/albums.json   yours to edit: title, place, date, description and
-                          cover of each album, plus optional per-photo fields
-                          (title, camera, lens, film, ...). New albums get an
-                          empty entry; existing values are never overwritten.
-    gallery/gallery.json  generated, read by the page. Do not edit.
+The script
+  - removes GPS data from those photos in place (lossless, via exiftool),
+  - writes a small copy of each to gallery/thumbs/<album>/ for the grid,
+  - keeps gallery/albums.json, yours to edit: title, place, date, description
+    and cover of each album, plus optional per-photo fields (title, camera,
+    lens, film, ...). New albums get an empty entry; your values are never
+    overwritten,
+  - writes gallery/gallery.json, read by the page. Do not edit it.
 
 An album's date is worked out from the photos' EXIF dates (e.g. "June 2025")
 unless you write one in albums.json, e.g. "Summer 2025".
 """
 
+import hashlib
 import json
 import re
+import shutil
+import subprocess
 import sys
 import unicodedata
 from datetime import datetime
 from fractions import Fraction
 from pathlib import Path
+from urllib.parse import quote, unquote
 
 from PIL import Image, ImageOps
 
@@ -48,7 +50,6 @@ THUMB_DIR = ROOT / "thumbs"
 ALBUMS = ROOT / "albums.json"
 OUTPUT = ROOT / "gallery.json"
 
-FULL_SIZE = 2400
 THUMB_HEIGHT = 600
 EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"}
 ALBUM_FIELDS = {"title": "", "place": "", "date": "", "description": "", "cover": "", "photos": {}}
@@ -143,50 +144,71 @@ def album_date(photos):
     return f"{first:%B %Y} – {last:%B %Y}"
 
 
-def save_resized(img, dest, size, src):
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    if dest.exists() and dest.stat().st_mtime >= src.stat().st_mtime:
-        with Image.open(dest) as done:  # already up to date
-            return done.size
-    copy = img.copy()
-    copy.thumbnail(size, Image.LANCZOS)
-    # no exif= argument, so the output carries no metadata at all
-    copy.convert("RGB").save(dest, "JPEG", quality=85, optimize=True, progressive=True)
-    return copy.size
+def strip_gps():
+    """Remove GPS tags (EXIF and XMP) from every photo, without re-encoding it."""
+    if not shutil.which("exiftool"):
+        print("WARNING: exiftool is not installed, GPS data was NOT removed")
+        return
+    exts = [arg for ext in EXTENSIONS for arg in ("-ext", ext.lstrip("."))]
+    subprocess.run(
+        ["exiftool", "-q", "-q", "-r", "-overwrite_original", *exts,
+         "-gps:all=", "-xmp-exif:gps*=", str(FULL_DIR)],
+        check=True,
+    )
 
 
-def build_photo(src, album_id, overrides):
+def file_hash(path):
+    return hashlib.sha1(path.read_bytes()).hexdigest()
+
+
+def build_photo(src, album_id, overrides, previous):
     pid = src.stem
-    full = FULL_DIR / album_id / f"{pid}.jpg"
     thumb = THUMB_DIR / album_id / f"{pid}.jpg"
+    digest = file_hash(src)
     with Image.open(src) as img:
         exif = read_exif(img)
-        img = ImageOps.exif_transpose(img)  # bake rotation in, since the metadata is dropped
-        width, height = save_resized(img, full, (FULL_SIZE, FULL_SIZE), src)
-        thumb_w, thumb_h = save_resized(img, thumb, (THUMB_HEIGHT * 4, THUMB_HEIGHT), src)
+        img = ImageOps.exif_transpose(img)  # browsers rotate by EXIF too, so use the upright size
+        width, height = img.size
+        old = previous.get(src)
+        if old and old.get("hash") == digest and thumb.exists():
+            thumb_w, thumb_h = old["thumbWidth"], old["thumbHeight"]
+        else:
+            copy = img.copy()
+            copy.thumbnail((THUMB_HEIGHT * 4, THUMB_HEIGHT), Image.LANCZOS)
+            thumb.parent.mkdir(parents=True, exist_ok=True)
+            # no exif= argument, so the thumbnail carries no metadata at all
+            copy.convert("RGB").save(thumb, "JPEG", quality=85, optimize=True, progressive=True)
+            thumb_w, thumb_h = copy.size
 
     photo = {"id": pid, **exif, **{k: v for k, v in overrides.get(pid, {}).items() if v}}
     if photo.get("taken"):
         photo["date"] = photo["taken"][:10]
     return photo | {
-        "src": full.relative_to(ROOT.parent).as_posix(),
+        "src": quote(src.relative_to(ROOT.parent).as_posix()),
         "width": width,
         "height": height,
-        "thumb": thumb.relative_to(ROOT.parent).as_posix(),
+        "thumb": quote(thumb.relative_to(ROOT.parent).as_posix()),
         "thumbWidth": thumb_w,
         "thumbHeight": thumb_h,
+        "hash": digest,
     }
 
 
 def main():
-    originals = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "originals"
-    if not originals.is_dir():
-        sys.exit(f"No originals folder at {originals}")
+    if not FULL_DIR.is_dir():
+        sys.exit(f"No photos folder at {FULL_DIR}")
+    strip_gps()
 
     editable = json.loads(ALBUMS.read_text()) if ALBUMS.exists() else {}
+    # thumbnails of unchanged photos are reused, keyed by the photo's path
+    previous = {}
+    if OUTPUT.exists():
+        for album in json.loads(OUTPUT.read_text()):
+            for p in album["photos"]:
+                previous[ROOT.parent / unquote(p["src"])] = p
     albums, written = [], set()
 
-    for category_dir in sorted(d for d in originals.iterdir() if d.is_dir()):
+    for category_dir in sorted(d for d in FULL_DIR.iterdir() if d.is_dir()):
         for album_dir in sorted(d for d in category_dir.iterdir() if d.is_dir()):
             album_id = slugify(album_dir.name)
             if any(a["id"] == album_id for a in albums):
@@ -198,11 +220,11 @@ def main():
                 meta.setdefault(key, album_dir.name if key == "title" else default)
 
             sources = [p for p in album_dir.iterdir() if p.suffix.lower() in EXTENSIONS]
-            photos = [build_photo(src, album_id, meta["photos"]) for src in sources]
+            photos = [build_photo(src, album_id, meta["photos"], previous) for src in sources]
             if not photos:
                 continue
             photos.sort(key=lambda p: (p.get("taken", "9999"), p["id"]))
-            written |= {ROOT.parent / p[k] for p in photos for k in ("src", "thumb")}
+            written |= {ROOT.parent / unquote(p["thumb"]) for p in photos}
 
             cover = next((p for p in photos if p["id"] == meta["cover"]), photos[0])
             dates = [p["taken"] for p in photos if p.get("taken")]
@@ -220,15 +242,14 @@ def main():
             print(f"  {category_dir.name} / {meta['title']}: {len(photos)} photos")
 
         for loose in (p for p in category_dir.iterdir() if p.suffix.lower() in EXTENSIONS):
-            print(f"  skipped {loose.relative_to(originals)}: photos go inside an album folder")
+            print(f"  skipped {loose.relative_to(FULL_DIR)}: photos go inside an album folder")
 
-    # remove resized copies of photos or albums that no longer exist
-    for folder in (FULL_DIR, THUMB_DIR):
-        for path in sorted(folder.rglob("*"), reverse=True) if folder.exists() else []:
-            if path.is_file() and path not in written:
-                path.unlink()
-            elif path.is_dir() and not any(path.iterdir()):
-                path.rmdir()
+    # remove thumbnails of photos or albums that no longer exist
+    for path in sorted(THUMB_DIR.rglob("*"), reverse=True) if THUMB_DIR.exists() else []:
+        if path.is_file() and path not in written:
+            path.unlink()
+        elif path.is_dir() and not any(path.iterdir()):
+            path.rmdir()
 
     albums.sort(key=lambda a: a["sortDate"], reverse=True)
     ALBUMS.write_text(json.dumps(editable, indent=2, ensure_ascii=False) + "\n")
