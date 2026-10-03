@@ -19,15 +19,36 @@
 .back-link {
     position: absolute;
     left: 1rem;
-    font-size: 1.6rem;
-    line-height: 1;
-    color: rgba(30, 30, 30, 0.85);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px 5px 10px;
+    font-size: 0.8rem;
+    font-weight: 520;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     text-decoration: none;
-    transition: opacity 0.25s var(--ease);
+    color: #2a2a2a;
+    border-radius: 10px;
+    border: 1px solid rgba(230, 230, 230, 0.6);
+    background: rgba(255, 255, 255, 0.45);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    transition: background 0.25s var(--ease), box-shadow 0.25s var(--ease), transform 0.2s var(--ease);
+}
+
+.back-link .fa {
+    font-size: 1.1rem;
+    line-height: 1;
 }
 
 .back-link:hover {
-    opacity: 0.6;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    transform: translateY(-1px);
 }
 
 body {
@@ -109,23 +130,12 @@ a {
 .fj-gallery-item img {
     opacity: 0;
     transform: scale(1.015);
-    transition: opacity 0.6s var(--ease), transform 0.6s var(--ease), filter 0.4s var(--ease);
+    transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
 }
 
 .fj-gallery-item.is-loaded img {
     opacity: 1;
     transform: none;
-}
-
-/* hovering one photo quietly dims the others */
-@media (hover: hover) {
-    .fj-gallery:hover .fj-gallery-item.is-loaded img {
-        filter: grayscale(0.5) brightness(0.8);
-    }
-
-    .fj-gallery .fj-gallery-item.is-loaded:hover img {
-        filter: none;
-    }
 }
 
 .thumb-settings {
@@ -222,6 +232,16 @@ a {
     }
 
     .thumb-settings {
+        display: none;
+    }
+
+    /* icon only, so it never collides with the centered name */
+    .back-link {
+        left: 0.5rem;
+        padding: 5px 10px;
+    }
+
+    .back-link span {
         display: none;
     }
 }
