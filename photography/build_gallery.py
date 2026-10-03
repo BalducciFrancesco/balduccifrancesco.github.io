@@ -1,25 +1,41 @@
 #!/usr/bin/env python3
-"""Build the photo gallery: resize originals, read their EXIF, write photos.json.
+"""Build the photo gallery: resize originals, read their EXIF, write gallery.json.
 
 Usage:
     pip install pillow
     python3 photography/build_gallery.py [originals_dir]
 
-Drop full-resolution JPEGs into photography/gallery/originals/ (git-ignored),
-then run this script. For each photo it writes:
-    gallery/full/<name>.jpg   long edge <= FULL_SIZE, shown in the lightbox
-    gallery/thumbs/<name>.jpg height <= THUMB_HEIGHT, shown in the grid
+Originals live in photography/gallery/originals/ (git-ignored), one folder per
+category and one sub-folder per album:
+
+    originals/
+        Portraits/
+            Anna in Nyhavn/       <- album, its folder name is the default title
+                IMG_0001.jpg
+        Parties/
+            Roskilde 2025/
+                ...
+
+For every photo the script writes
+    gallery/full/<album>/<name>.jpg   long edge <= FULL_SIZE, shown fullscreen
+    gallery/thumbs/<name>.jpg         height <= THUMB_HEIGHT, shown in the grid
 Both copies are re-encoded without metadata, so GPS data never gets published.
 
-photos.json is merged, not overwritten: fields you add or edit by hand
-(title, album, camera, lens, film, ...) are kept on the next run, and EXIF
-only fills the fields that are still empty. That is also how film scans,
-which have no EXIF, get their details. Photos are listed newest first;
-entries whose original was removed are dropped.
+Two JSON files come out of it:
+    gallery/albums.json   yours to edit: title, place, date, description and
+                          cover of each album, plus optional per-photo fields
+                          (title, camera, lens, film, ...). New albums get an
+                          empty entry; existing values are never overwritten.
+    gallery/gallery.json  generated, read by the page. Do not edit.
+
+An album's date is worked out from the photos' EXIF dates (e.g. "June 2025")
+unless you write one in albums.json, e.g. "Summer 2025".
 """
 
 import json
+import re
 import sys
+import unicodedata
 from datetime import datetime
 from fractions import Fraction
 from pathlib import Path
@@ -29,17 +45,24 @@ from PIL import Image, ImageOps
 ROOT = Path(__file__).resolve().parent / "gallery"
 FULL_DIR = ROOT / "full"
 THUMB_DIR = ROOT / "thumbs"
-MANIFEST = ROOT / "photos.json"
+ALBUMS = ROOT / "albums.json"
+OUTPUT = ROOT / "gallery.json"
 
 FULL_SIZE = 2400
 THUMB_HEIGHT = 600
 EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"}
+ALBUM_FIELDS = {"title": "", "place": "", "date": "", "description": "", "cover": "", "photos": {}}
 
 # EXIF tag ids
 MAKE, MODEL, DATETIME = 0x010F, 0x0110, 0x0132
 EXIF_IFD = 0x8769
 EXPOSURE, FNUMBER, ISO, DATETIME_ORIGINAL = 0x829A, 0x829D, 0x8827, 0x9003
 FOCAL, FOCAL_35MM, LENS_MAKE, LENS_MODEL = 0x920A, 0xA405, 0xA433, 0xA434
+
+
+def slugify(text):
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
 def number(value):
@@ -98,20 +121,61 @@ def read_exif(img):
 
     raw_date = clean(sub.get(DATETIME_ORIGINAL) or exif.get(DATETIME))
     try:
-        info["date"] = datetime.strptime(raw_date, "%Y:%m:%d %H:%M:%S").strftime("%Y-%m-%d")
+        info["taken"] = datetime.strptime(raw_date, "%Y:%m:%d %H:%M:%S").isoformat()
     except ValueError:
         pass
 
     return {k: v for k, v in info.items() if v}
 
 
-def save_resized(img, dest, size):
+def album_date(photos):
+    """'18 June 2025', 'June 2025', 'May – June 2025' or 'December 2024 – January 2025'."""
+    days = sorted(p["taken"][:10] for p in photos if p.get("taken"))
+    if not days:
+        return ""
+    first, last = (datetime.fromisoformat(d) for d in (days[0], days[-1]))
+    if first == last:
+        return f"{first.day} {first:%B %Y}"
+    if (first.year, first.month) == (last.year, last.month):
+        return f"{first:%B %Y}"
+    if first.year == last.year:
+        return f"{first:%B} – {last:%B %Y}"
+    return f"{first:%B %Y} – {last:%B %Y}"
+
+
+def save_resized(img, dest, size, src):
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if dest.exists() and dest.stat().st_mtime >= src.stat().st_mtime:
+        with Image.open(dest) as done:  # already up to date
+            return done.size
     copy = img.copy()
     copy.thumbnail(size, Image.LANCZOS)
-    dest.parent.mkdir(parents=True, exist_ok=True)
     # no exif= argument, so the output carries no metadata at all
     copy.convert("RGB").save(dest, "JPEG", quality=85, optimize=True, progressive=True)
     return copy.size
+
+
+def build_photo(src, album_id, overrides):
+    pid = src.stem
+    full = FULL_DIR / album_id / f"{pid}.jpg"
+    thumb = THUMB_DIR / album_id / f"{pid}.jpg"
+    with Image.open(src) as img:
+        exif = read_exif(img)
+        img = ImageOps.exif_transpose(img)  # bake rotation in, since the metadata is dropped
+        width, height = save_resized(img, full, (FULL_SIZE, FULL_SIZE), src)
+        thumb_w, thumb_h = save_resized(img, thumb, (THUMB_HEIGHT * 4, THUMB_HEIGHT), src)
+
+    photo = {"id": pid, **exif, **{k: v for k, v in overrides.get(pid, {}).items() if v}}
+    if photo.get("taken"):
+        photo["date"] = photo["taken"][:10]
+    return photo | {
+        "src": full.relative_to(ROOT.parent).as_posix(),
+        "width": width,
+        "height": height,
+        "thumb": thumb.relative_to(ROOT.parent).as_posix(),
+        "thumbWidth": thumb_w,
+        "thumbHeight": thumb_h,
+    }
 
 
 def main():
@@ -119,41 +183,57 @@ def main():
     if not originals.is_dir():
         sys.exit(f"No originals folder at {originals}")
 
-    existing = {}
-    if MANIFEST.exists():
-        existing = {p["id"]: p for p in json.loads(MANIFEST.read_text())}
+    editable = json.loads(ALBUMS.read_text()) if ALBUMS.exists() else {}
+    albums, written = [], set()
 
-    photos = []
-    sources = sorted(p for p in originals.iterdir() if p.suffix.lower() in EXTENSIONS)
-    for src in sources:
-        pid = src.stem
-        with Image.open(src) as img:
-            exif = read_exif(img)
-            img = ImageOps.exif_transpose(img)  # bake rotation in, since the metadata is dropped
-            width, height = save_resized(img, FULL_DIR / f"{pid}.jpg", (FULL_SIZE, FULL_SIZE))
-            thumb_w, thumb_h = save_resized(img, THUMB_DIR / f"{pid}.jpg", (THUMB_HEIGHT * 4, THUMB_HEIGHT))
+    for category_dir in sorted(d for d in originals.iterdir() if d.is_dir()):
+        for album_dir in sorted(d for d in category_dir.iterdir() if d.is_dir()):
+            album_id = slugify(album_dir.name)
+            if any(a["id"] == album_id for a in albums):
+                sys.exit(f"Two albums are both called '{album_dir.name}': rename one of them")
 
-        entry = {"id": pid, "title": "", "album": ""}
-        entry.update(exif)
-        entry.update({k: v for k, v in existing.get(pid, {}).items() if v})  # hand edits win
-        entry.update({
-            "src": f"gallery/full/{pid}.jpg",
-            "width": width,
-            "height": height,
-            "thumb": f"gallery/thumbs/{pid}.jpg",
-            "thumbWidth": thumb_w,
-            "thumbHeight": thumb_h,
-        })
-        photos.append(entry)
-        print(f"  {pid}: {width}x{height}  " + " · ".join(str(exif.get(k, "")) for k in ("exposure", "aperture", "iso")))
+            # new albums get a stub to fill in; keys added later get their defaults
+            meta = editable.setdefault(album_id, {})
+            for key, default in ALBUM_FIELDS.items():
+                meta.setdefault(key, album_dir.name if key == "title" else default)
 
-    for pid in existing.keys() - {p["id"] for p in photos}:
-        for folder in (FULL_DIR, THUMB_DIR):
-            (folder / f"{pid}.jpg").unlink(missing_ok=True)
+            sources = [p for p in album_dir.iterdir() if p.suffix.lower() in EXTENSIONS]
+            photos = [build_photo(src, album_id, meta["photos"]) for src in sources]
+            if not photos:
+                continue
+            photos.sort(key=lambda p: (p.get("taken", "9999"), p["id"]))
+            written |= {ROOT.parent / p[k] for p in photos for k in ("src", "thumb")}
 
-    photos.sort(key=lambda p: (p.get("date", ""), p["id"]), reverse=True)
-    MANIFEST.write_text(json.dumps(photos, indent=2, ensure_ascii=False) + "\n")
-    print(f"Wrote {len(photos)} photos to {MANIFEST.relative_to(ROOT.parent.parent)}")
+            cover = next((p for p in photos if p["id"] == meta["cover"]), photos[0])
+            dates = [p["taken"] for p in photos if p.get("taken")]
+            albums.append({
+                "id": album_id,
+                "category": category_dir.name,
+                "title": meta["title"],
+                "place": meta["place"],
+                "date": meta["date"] or album_date(photos),
+                "description": meta["description"],
+                "sortDate": max(dates) if dates else "",
+                "cover": {k: cover[k] for k in ("thumb", "thumbWidth", "thumbHeight")},
+                "photos": photos,
+            })
+            print(f"  {category_dir.name} / {meta['title']}: {len(photos)} photos")
+
+        for loose in (p for p in category_dir.iterdir() if p.suffix.lower() in EXTENSIONS):
+            print(f"  skipped {loose.relative_to(originals)}: photos go inside an album folder")
+
+    # remove resized copies of photos or albums that no longer exist
+    for folder in (FULL_DIR, THUMB_DIR):
+        for path in sorted(folder.rglob("*"), reverse=True) if folder.exists() else []:
+            if path.is_file() and path not in written:
+                path.unlink()
+            elif path.is_dir() and not any(path.iterdir()):
+                path.rmdir()
+
+    albums.sort(key=lambda a: a["sortDate"], reverse=True)
+    ALBUMS.write_text(json.dumps(editable, indent=2, ensure_ascii=False) + "\n")
+    OUTPUT.write_text(json.dumps(albums, indent=2, ensure_ascii=False) + "\n")
+    print(f"Wrote {len(albums)} albums to {OUTPUT.relative_to(ROOT.parent.parent)}")
 
 
 if __name__ == "__main__":

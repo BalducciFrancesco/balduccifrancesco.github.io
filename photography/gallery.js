@@ -1,7 +1,7 @@
 import PhotoSwipeLightbox from 'https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe-lightbox.esm.min.js';
 
-const gallery = document.getElementById('gallery');
-const albumsNav = document.querySelector('.albums');
+const view = document.getElementById('view');
+const intro = document.getElementById('intro');
 const emptyNote = document.querySelector('.gallery-empty');
 
 const el = (tag, className, text) => {
@@ -15,6 +15,8 @@ const el = (tag, className, text) => {
 const settingsLine = (p) => [p.exposure, p.aperture, p.iso, p.focal].filter(Boolean).join(' · ');
 // "Fujifilm X-T3 · XF35mmF2 R WR" or "Pentax Spotmatic F · Kodak Vision3 250D"
 const gearLine = (p) => [p.camera, p.lens, p.film].filter(Boolean).join(' · ');
+// "Copenhagen · June 2025"
+const albumLine = (a) => [a.place, a.date].filter(Boolean).join(' · ');
 
 const formatDate = (iso) => {
     if (!iso) return '';
@@ -22,100 +24,176 @@ const formatDate = (iso) => {
     return isNaN(date) ? iso : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-function captionFor(p) {
+const thumbImg = ({ thumb, thumbWidth, thumbHeight }, alt) => {
+    const img = el('img');
+    img.src = thumb;
+    img.width = thumbWidth;
+    img.height = thumbHeight;
+    img.alt = alt;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    return img;
+};
+
+/* Progressive reveal: once an item is on screen and its image has loaded it joins
+   a queue, and the queue shows one item at a time, in page order, a beat apart. */
+const queue = [];
+let revealing = false;
+
+function revealNext() {
+    queue.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+    const node = queue.shift();
+    if (!node) {
+        revealing = false;
+        return;
+    }
+    node.classList.add('is-visible');
+    revealing = true;
+    setTimeout(revealNext, 90);
+}
+
+const observer = new IntersectionObserver((entries) => {
+    entries.filter((e) => e.isIntersecting).forEach(({ target }) => {
+        observer.unobserve(target);
+        const img = target.querySelector('img');
+        const ready = () => {
+            queue.push(target);
+            if (!revealing) revealNext();
+        };
+        if (img.complete) ready();
+        else {
+            img.addEventListener('load', ready, { once: true });
+            img.addEventListener('error', ready, { once: true });
+        }
+    });
+}, { threshold: 0.1 });
+
+const reveal = (nodes) => nodes.forEach((node) => observer.observe(node));
+
+/* Index: albums grouped by category, most recent first */
+
+function albumCard(album) {
+    const card = el('a', 'album-card');
+    card.href = `?album=${encodeURIComponent(album.id)}`;
+
+    const cover = el('div', 'album-cover');
+    cover.append(thumbImg(album.cover, album.title));
+
+    const info = el('div', 'album-info');
+    info.append(el('h4', 'album-title', album.title));
+    if (albumLine(album)) info.append(el('p', 'album-meta', albumLine(album)));
+
+    card.append(cover, info);
+    return card;
+}
+
+function renderIndex(albums) {
+    const categories = new Map();
+    albums.forEach((a) => categories.set(a.category, [...(categories.get(a.category) || []), a]));
+
+    categories.forEach((list, name) => {
+        const section = el('section', 'category');
+        section.id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+        const heading = el('h3', 'category-title', name);
+        heading.append(el('span', 'category-count', String(list.length)));
+
+        const grid = el('div', 'album-grid');
+        grid.append(...list.map(albumCard));
+        section.append(heading, grid);
+        view.append(section);
+    });
+    reveal([...view.querySelectorAll('.album-card')]);
+}
+
+/* Album: header, justified grid, fullscreen viewer */
+
+function captionFor(p, album) {
     const caption = el('div', 'photo-caption');
     if (p.title) caption.append(el('p', 'caption-title', p.title));
     if (settingsLine(p)) caption.append(el('p', 'caption-settings', settingsLine(p)));
-    const meta = [gearLine(p), formatDate(p.date)].filter(Boolean).join(' — ');
+    const where = [album.place, formatDate(p.date)].filter(Boolean).join(', ');
+    const meta = [gearLine(p), where].filter(Boolean).join(' — ');
     if (meta) caption.append(el('p', 'caption-meta', meta));
     return caption;
 }
 
-function itemFor(p) {
+function photoItem(p, album) {
     const link = el('a', 'fj-gallery-item');
     link.href = p.src;
     link.dataset.pswpWidth = p.width;
     link.dataset.pswpHeight = p.height;
-
-    const img = el('img');
-    img.src = p.thumb;
-    img.width = p.thumbWidth;
-    img.height = p.thumbHeight;
-    img.alt = p.title || 'Photograph';
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    img.addEventListener('load', () => link.classList.add('is-loaded'), { once: true });
-    if (img.complete) link.classList.add('is-loaded');
-
-    link.append(img, captionFor(p));
+    link.append(thumbImg(p, p.title || album.title), captionFor(p, album));
     if (settingsLine(p)) link.append(el('span', 'thumb-settings', settingsLine(p)));
     return link;
 }
 
-function render(photos) {
-    if (gallery.fjGallery) fjGallery(gallery, 'destroy');
-    gallery.replaceChildren(...photos.map(itemFor));
-    emptyNote.hidden = photos.length > 0;
+function renderAlbum(album) {
+    document.title = `${album.title} - Francesco Balducci`;
+    intro.hidden = true;
+
+    const header = el('section', 'album-header');
+    const back = el('a', 'link-text', 'All albums');
+    back.href = 'gallery.html';
+    header.append(back, el('p', 'album-category', album.category), el('h2', 'album-heading', album.title));
+    if (albumLine(album)) header.append(el('p', 'album-meta', albumLine(album)));
+    if (album.description) header.append(el('p', 'album-description', album.description));
+
+    const gallery = el('div', 'fj-gallery');
+    gallery.id = 'gallery';
+    gallery.append(...album.photos.map((p) => photoItem(p, album)));
+    view.append(header, gallery);
+
+    const small = window.innerWidth < 640;
     fjGallery(gallery, {
         itemSelector: '.fj-gallery-item',
-        rowHeight: window.innerWidth < 640 ? 200 : 320,
-        gutter: window.innerWidth < 640 ? 4 : 8,
+        rowHeight: small ? 200 : 320,
+        gutter: small ? 4 : 8,
         lastRow: 'left',
         transitionDuration: '0s',
     });
+    reveal([...gallery.children]);
+    initLightbox();
 }
 
-function renderAlbums(photos) {
-    const albums = [...new Set(photos.map((p) => p.album).filter(Boolean))];
-    if (albums.length < 2) return;
-
-    const select = (button, album) => {
-        albumsNav.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === button));
-        render(album ? photos.filter((p) => p.album === album) : photos);
-    };
-
-    ['All', ...albums].forEach((name, i) => {
-        const button = el('button', i === 0 ? 'album active' : 'album', name);
-        button.type = 'button';
-        button.addEventListener('click', () => select(button, i === 0 ? null : name));
-        albumsNav.append(button);
+function initLightbox() {
+    const lightbox = new PhotoSwipeLightbox({
+        gallery: '#gallery',
+        children: 'a',
+        pswpModule: () => import('https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.esm.min.js'),
+        bgOpacity: 1,
+        showHideAnimationType: 'zoom',
+        imageClickAction: 'close',
+        tapAction: 'toggle-controls',
+        zoom: false,
+        padding: { top: 40, bottom: 110, left: 16, right: 16 },
     });
-    albumsNav.hidden = false;
+
+    // Show the hidden .photo-caption of the current slide under the image
+    lightbox.on('uiRegister', () => {
+        lightbox.pswp.ui.registerElement({
+            name: 'exif-caption',
+            order: 9,
+            isButton: false,
+            appendTo: 'root',
+            onInit: (node, pswp) => {
+                pswp.on('change', () => {
+                    const caption = pswp.currSlide.data.element?.querySelector('.photo-caption');
+                    node.replaceChildren(...(caption ? [caption.cloneNode(true)] : []));
+                });
+            },
+        });
+    });
+    lightbox.init();
 }
 
-const lightbox = new PhotoSwipeLightbox({
-    gallery: '#gallery',
-    children: 'a',
-    pswpModule: () => import('https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.esm.min.js'),
-    bgOpacity: 1,
-    showHideAnimationType: 'zoom',
-    imageClickAction: 'close',
-    tapAction: 'toggle-controls',
-    zoom: false,
-    padding: { top: 40, bottom: 110, left: 16, right: 16 },
-});
-
-// Show the hidden .photo-caption of the current slide under the image
-lightbox.on('uiRegister', () => {
-    lightbox.pswp.ui.registerElement({
-        name: 'exif-caption',
-        order: 9,
-        isButton: false,
-        appendTo: 'root',
-        onInit: (node, pswp) => {
-            pswp.on('change', () => {
-                const caption = pswp.currSlide.data.element?.querySelector('.photo-caption');
-                node.replaceChildren(...(caption ? [caption.cloneNode(true)] : []));
-            });
-        },
-    });
-});
-lightbox.init();
-
-fetch('gallery/photos.json')
+fetch('gallery/gallery.json')
     .then((res) => (res.ok ? res.json() : []))
     .catch(() => [])
-    .then((photos) => {
-        renderAlbums(photos);
-        render(photos);
+    .then((albums) => {
+        const wanted = new URLSearchParams(location.search).get('album');
+        const album = albums.find((a) => a.id === wanted);
+        emptyNote.hidden = albums.length > 0;
+        if (album) renderAlbum(album);
+        else renderIndex(albums);
     });
