@@ -117,13 +117,6 @@ a {
     background: rgba(60, 60, 60, 0.18);
 }
 
-.category-count {
-    font-size: 0.7rem;
-    font-weight: 400;
-    letter-spacing: 0.05em;
-    color: rgba(60, 60, 60, 0.45);
-}
-
 .album-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -176,15 +169,7 @@ a {
 /* album page header */
 .album-header {
     text-align: center;
-    padding: 2.5rem 0 2rem;
-}
-
-.album-category {
-    margin: 1.75rem 0 0.4rem;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.25em;
-    color: rgba(60, 60, 60, 0.5);
+    padding: 3rem 0 2rem;
 }
 
 .album-heading {

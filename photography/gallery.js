@@ -17,6 +17,7 @@ const settingsLine = (p) => [p.exposure, p.aperture, p.iso, p.focal].filter(Bool
 const gearLine = (p) => [p.camera, p.lens, p.film].filter(Boolean).join(' · ');
 // "Copenhagen · June 2025"
 const albumLine = (a) => [a.place, a.date].filter(Boolean).join(' · ');
+const categoryId = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
 const formatDate = (iso) => {
     if (!iso) return '';
@@ -93,10 +94,9 @@ function renderIndex(albums) {
 
     categories.forEach((list, name) => {
         const section = el('section', 'category');
-        section.id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        section.id = categoryId(name);
 
         const heading = el('h3', 'category-title', name);
-        heading.append(el('span', 'category-count', String(list.length)));
 
         const grid = el('div', 'album-grid');
         grid.append(...list.map(albumCard));
@@ -104,6 +104,9 @@ function renderIndex(albums) {
         view.append(section);
     });
     reveal([...view.querySelectorAll('.album-card')]);
+
+    // sections are built after load, so the browser could not jump to #category itself
+    if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
 }
 
 /* Album: header, justified grid, fullscreen viewer */
@@ -132,10 +135,13 @@ function renderAlbum(album) {
     document.title = `${album.title} - Francesco Balducci`;
     intro.hidden = true;
 
+    // the toolbar arrow leads back to this album's category instead of the portfolio
+    const back = document.querySelector('.back-link');
+    back.href = `gallery.html#${categoryId(album.category)}`;
+    back.setAttribute('aria-label', 'Back to all albums');
+
     const header = el('section', 'album-header');
-    const back = el('a', 'link-text', 'All albums');
-    back.href = 'gallery.html';
-    header.append(back, el('p', 'album-category', album.category), el('h2', 'album-heading', album.title));
+    header.append(el('h2', 'album-heading', album.title));
     if (albumLine(album)) header.append(el('p', 'album-meta', albumLine(album)));
     if (album.description) header.append(el('p', 'album-description', album.description));
 
