@@ -1,0 +1,227 @@
+/* Photo gallery page. Fonts, background, navbar and link styles come from ../style.css */
+
+.navbar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+}
+
+.navbar h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.back-link {
+    position: absolute;
+    left: 1rem;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: rgba(30, 30, 30, 0.85);
+    text-decoration: none;
+    transition: opacity 0.25s var(--ease);
+}
+
+.back-link:hover {
+    opacity: 0.6;
+}
+
+body {
+    margin: 0;
+    color: #1a1a1a;
+}
+
+/* the homepage gets this reset from Tailwind, which this page does not load */
+a {
+    color: inherit;
+}
+
+.gallery-page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem 3rem;
+}
+
+.gallery-intro {
+    text-align: center;
+    padding: 3rem 0 2rem;
+}
+
+.gallery-intro h2 {
+    margin: 0;
+    font-size: 2.25rem;
+    font-weight: 300;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    /* letter-spacing adds trailing space after the last letter: shift it back to center */
+    margin-right: -0.35em;
+}
+
+.gallery-intro p {
+    margin: 0.6rem 0 0;
+    font-style: italic;
+    color: rgba(60, 60, 60, 0.6);
+}
+
+/* album filter, shown only when photos.json uses at least two albums */
+.albums {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 1.5rem;
+}
+
+.album {
+    padding: 4px 12px;
+    font: inherit;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(50, 50, 50, 0.85);
+    border-radius: 6px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    cursor: pointer;
+    transition: background 0.25s var(--ease), color 0.25s var(--ease);
+}
+
+.album:hover {
+    background: var(--glass-bg-open);
+}
+
+.album.active {
+    color: #f4f4f5;
+    background: rgba(30, 30, 30, 0.85);
+}
+
+/* grid */
+.fj-gallery-item {
+    overflow: hidden;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.fj-gallery-item img {
+    opacity: 0;
+    transform: scale(1.015);
+    transition: opacity 0.6s var(--ease), transform 0.6s var(--ease), filter 0.4s var(--ease);
+}
+
+.fj-gallery-item.is-loaded img {
+    opacity: 1;
+    transform: none;
+}
+
+/* hovering one photo quietly dims the others */
+@media (hover: hover) {
+    .fj-gallery:hover .fj-gallery-item.is-loaded img {
+        filter: grayscale(0.5) brightness(0.8);
+    }
+
+    .fj-gallery .fj-gallery-item.is-loaded:hover img {
+        filter: none;
+    }
+}
+
+.thumb-settings {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 1.5rem 0.75rem 0.5rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.92);
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.45));
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+    pointer-events: none;
+}
+
+.fj-gallery-item:hover .thumb-settings {
+    opacity: 1;
+    transform: none;
+}
+
+/* the caption lives inside each link for PhotoSwipe to read, never in the grid */
+.fj-gallery-item .photo-caption {
+    display: none;
+}
+
+.gallery-empty {
+    text-align: center;
+    font-style: italic;
+    color: rgba(60, 60, 60, 0.6);
+}
+
+.gallery-footer {
+    margin-top: 3rem;
+    text-align: center;
+}
+
+/* lightbox caption */
+.pswp {
+    font-family: "Urbanist", sans-serif;
+}
+
+.pswp__exif-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 1rem 1rem 1.5rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.88);
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease);
+}
+
+.pswp--ui-visible .pswp__exif-caption {
+    opacity: 1;
+}
+
+.pswp:not(.pswp--ui-visible) .pswp__exif-caption {
+    opacity: 0;
+}
+
+.pswp__exif-caption p {
+    margin: 0.2rem 0;
+}
+
+.caption-title {
+    font-size: 1.05rem;
+    font-weight: 500;
+}
+
+.caption-settings {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+}
+
+.caption-meta {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 640px) {
+    .gallery-page {
+        padding: 0 4px 2rem;
+    }
+
+    .gallery-intro h2 {
+        font-size: 1.6rem;
+        letter-spacing: 0.25em;
+        margin-right: -0.25em;
+    }
+
+    .thumb-settings {
+        display: none;
+    }
+}
