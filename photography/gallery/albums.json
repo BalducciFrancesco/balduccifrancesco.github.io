@@ -1,6 +1,6 @@
 [
   {
-    "category": "events",
+    "category": "parties",
     "albums": [
       {
         "title": "IntroFest Fall '26",
@@ -8,6 +8,25 @@
         "date": "2026-08",
         "cover": "introfest.jpg",
         "url": "https://www.amazon.it/photos/share/W0M5YKwFLiBkFcjCQXKus8T1QaKLHtzhIQIinc5QSHS"
+      }
+    ]
+  },
+  {
+    "category": "events",
+    "albums": [
+      {
+        "title": "DTU Act - Zeus Ate My Daughter! - first show",
+        "place": "DTU",
+        "date": "2025-06",
+        "cover": "zeus-first.jpg",
+        "url": "https://www.amazon.it/photos/share/vjXdLkdk4nt734EawGGi5DbV0jyei4YCiOOvOagw3eh"
+      },
+      {
+        "title": "DTU Act - Zeus Ate My Daughter! - second show",
+        "place": "DTU",
+        "date": "2025-06",
+        "cover": "zeus-second.jpg",
+        "url": "https://www.amazon.it/photos/share/IuJ9m8pRCqByAJM9jWcKVTDoDfryChIILNQ77EMkFLs"
       },
       {
         "title": "DTU Italian Society at Compute",
@@ -22,20 +41,39 @@
         "date": "2025-11",
         "cover": "student-job-event.jpg",
         "url": "https://www.amazon.it/photos/share/kQyqvToz4dsjw5xmd5A1c6VffTV6qc6RNnEO6TJ87Ly"
+      }
+    ]
+  },
+  {
+    "category": "studio",
+    "albums": [
+      {
+        "title": "DTU Management Council",
+        "place": "DTU Photo Studio",
+        "date": "2025-04",
+        "cover": "dtu-management.jpg",
+        "url": "https://www.amazon.it/photos/share/f4qY8MGb1mIWTpSgwoNwBxWcfhEvrlMpyVGET2mNpAg"
       },
       {
-        "title": "DTU Act - Zeus Ate My Daughter! - first show",
-        "place": "DTU",
-        "date": "2025-06",
-        "cover": "zeus-first.jpg",
-        "url": "https://www.amazon.it/photos/share/vjXdLkdk4nt734EawGGi5DbV0jyei4YCiOOvOagw3eh"
+        "title": "DTU Act",
+        "place": "DTU Photo Studio",
+        "date": "2025-04",
+        "cover": "dtu-act.jpg",
+        "url": "https://www.amazon.it/photos/share/2IR3N98MrIM4M7tO19Y6SgObQYpwpXCiaM9L9vsvPeS"
       },
       {
-        "title": "DTU Act - Zeus Ate My Daughter! - second show",
-        "place": "DTU",
+        "title": "Erica",
+        "place": "DTU Photo Studio",
         "date": "2025-06",
-        "cover": "zeus-second.jpg",
-        "url": "https://www.amazon.it/photos/share/IuJ9m8pRCqByAJM9jWcKVTDoDfryChIILNQ77EMkFLs"
+        "cover": "erica.jpg",
+        "url": "https://www.amazon.it/photos/share/MWPjzNr1zlue3wNzjK1IzRxethnw0HJ2XXbNDTKSmyl"
+      },
+      {
+        "title": "Attila",
+        "place": "DTU Photo Studio",
+        "date": "2025-04",
+        "cover": "attila-studio.jpg",
+        "url": "https://www.amazon.it/photos/share/VlGf1x40hyDSnGpEalggOajrxYvldIyfvD8GaFXG3bm"
       }
     ]
   },
@@ -86,39 +124,6 @@
         "date": "2025-11",
         "cover": "levi.jpg",
         "url": "https://www.amazon.it/photos/share/ILTXqK0BSdbGvyOxOfeCruta6ryaKybudBZsPkZMbLY"
-      }
-    ]
-  },
-  {
-    "category": "studio",
-    "albums": [
-      {
-        "title": "DTU Management Council",
-        "place": "DTU Photo Studio",
-        "date": "2025-04",
-        "cover": "dtu-management.jpg",
-        "url": "https://www.amazon.it/photos/share/f4qY8MGb1mIWTpSgwoNwBxWcfhEvrlMpyVGET2mNpAg"
-      },
-      {
-        "title": "DTU Act",
-        "place": "DTU Photo Studio",
-        "date": "2025-04",
-        "cover": "dtu-act.jpg",
-        "url": "https://www.amazon.it/photos/share/2IR3N98MrIM4M7tO19Y6SgObQYpwpXCiaM9L9vsvPeS"
-      },
-      {
-        "title": "Erica",
-        "place": "DTU Photo Studio",
-        "date": "2025-06",
-        "cover": "erica.jpg",
-        "url": "https://www.amazon.it/photos/share/MWPjzNr1zlue3wNzjK1IzRxethnw0HJ2XXbNDTKSmyl"
-      },
-      {
-        "title": "Attila",
-        "place": "DTU Photo Studio",
-        "date": "2025-04",
-        "cover": "attila-studio.jpg",
-        "url": "https://www.amazon.it/photos/share/VlGf1x40hyDSnGpEalggOajrxYvldIyfvD8GaFXG3bm"
       }
     ]
   }
