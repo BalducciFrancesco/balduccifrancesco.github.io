@@ -126,6 +126,7 @@ function photoItem(p, album) {
     link.href = p.src;
     link.dataset.pswpWidth = p.width;
     link.dataset.pswpHeight = p.height;
+    link.style.setProperty('--ratio', p.width / p.height);
     link.append(thumbImg(p, p.title || album.title), captionFor(p, album));
     if (settingsLine(p)) link.append(el('span', 'thumb-settings', settingsLine(p)));
     return link;
@@ -150,14 +151,6 @@ function renderAlbum(album) {
     gallery.append(...album.photos.map((p) => photoItem(p, album)));
     view.append(header, gallery);
 
-    const small = window.innerWidth < 640;
-    fjGallery(gallery, {
-        itemSelector: '.fj-gallery-item',
-        rowHeight: small ? 200 : 320,
-        gutter: small ? 4 : 8,
-        lastRow: 'left',
-        transitionDuration: '0s',
-    });
     reveal([...gallery.children]);
     initLightbox();
 }

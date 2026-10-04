@@ -67,8 +67,7 @@ a {
     color: rgba(60, 60, 60, 0.6);
 }
 
-/* Progressive reveal: gallery.js adds .is-visible one item at a time.
-   Grid tiles are positioned by fjGallery with transform, so the image inside moves, not the tile. */
+/* Progressive reveal: gallery.js adds .is-visible one item at a time. */
 .fj-gallery-item img,
 .album-card {
     opacity: 0;
@@ -191,8 +190,23 @@ a {
     color: rgba(30, 30, 30, 0.7);
 }
 
-/* grid */
+/* justified rows: each tile grows in proportion to its aspect ratio, so a row fills the width at one height */
+.fj-gallery {
+    --row: 320px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* swallows the leftover space so the last row stays left-aligned */
+.fj-gallery::after {
+    content: "";
+    flex-grow: 1000;
+}
+
 .fj-gallery-item {
+    position: relative;
+    flex: var(--ratio) 1 calc(var(--ratio) * var(--row));
     overflow: hidden;
     border-radius: 2px;
     background: rgba(0, 0, 0, 0.04);
@@ -224,6 +238,12 @@ a {
     display: none;
 }
 
+.fj-gallery-item img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
 .gallery-empty {
     text-align: center;
     font-style: italic;
@@ -250,10 +270,6 @@ a {
     color: rgba(255, 255, 255, 0.88);
     pointer-events: none;
     transition: opacity 0.3s var(--ease);
-}
-
-.pswp--ui-visible .pswp__exif-caption {
-    opacity: 1;
 }
 
 .pswp:not(.pswp--ui-visible) .pswp__exif-caption {
@@ -293,6 +309,11 @@ a {
 
     .thumb-settings {
         display: none;
+    }
+
+    .fj-gallery {
+        --row: 200px;
+        gap: 4px;
     }
 
     .album-grid {
