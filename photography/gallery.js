@@ -64,7 +64,7 @@ function albumCard(album) {
 
     const info = el('div', 'album-info');
     const title = el('h4', 'album-title', album.title);
-    title.append(el('span', 'album-link', '↗'));
+    title.append(el("span", "album-link"));
     info.append(title);
     if (albumLine(album)) info.append(el('p', 'album-meta', albumLine(album)));
 
