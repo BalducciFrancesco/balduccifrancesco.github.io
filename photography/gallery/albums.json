@@ -1,10 +1,114 @@
 [
   {
-    "title": "introfest",
-    "category": "parties",
+    "title": "IntroFest Fall '26",
+    "category": "events",
     "place": "DTU",
     "date": "29 August 2026",
     "cover": "introfest.jpg",
-    "url": "https://www.amazon.it/photos/share/zPRpJgbScvD17t9L2Rw0B74ckIqOQPkfh2UJkK7ZrkZ"
+    "url": "https://www.amazon.it/photos/share/W0M5YKwFLiBkFcjCQXKus8T1QaKLHtzhIQIinc5QSHS"
+  },
+  {
+    "title": "Coralview Island Resort Staff",
+    "category": "portraits",
+    "place": "Fiji (Tavewa Island)",
+    "date": "27 June 2026",
+    "cover": "coralview.jpg",
+    "url": "https://www.amazon.it/photos/share/lIeNzAF1mY4NSMHDVYooPeuOssdeSlJilTSvi3nanhW"
+  },
+  {
+    "title": "DTU Italian Society at Compute",
+    "category": "events",
+    "place": "DTU",
+    "date": "29 November 2025",
+    "cover": "dtu-compute.jpg",
+    "url": "https://www.amazon.it/photos/share/zQYPBHGAb4p7GzXzS06u17ymdW2XFU4SBZOvCdHTMY7"
+  },
+  {
+    "title": "Surf",
+    "category": "sports",
+    "place": "Gold Coast",
+    "date": "22 February 2026",
+    "cover": "surf.jpg",
+    "url": "https://www.amazon.it/photos/share/RwHquz7vb0qPOvCCRuVqq0kKPMCuvfyslP35qhddWog"
+  },
+  {
+    "title": "DTU Italian Society for Student Jobs",
+    "category": "events",
+    "place": "Skylab, DTU",
+    "date": "13 November 2025",
+    "cover": "student-job-event.jpg",
+    "url": "https://www.amazon.it/photos/share/kQyqvToz4dsjw5xmd5A1c6VffTV6qc6RNnEO6TJ87Ly"
+  },
+  {
+    "title": "ESN adventure to Finnish Lapland",
+    "category": "travel",
+    "place": "Levi, Finland",
+    "date": "20 November 2026",
+    "cover": "levi.jpg",
+    "url": "https://www.amazon.it/photos/share/ILTXqK0BSdbGvyOxOfeCruta6ryaKybudBZsPkZMbLY"
+  },
+  {
+    "title": "DTU Management Council",
+    "category": "studio",
+    "place": "DTU Photo Studio",
+    "date": "29 April 2025",
+    "cover": "dtu-management.jpg",
+    "url": "https://www.amazon.it/photos/share/f4qY8MGb1mIWTpSgwoNwBxWcfhEvrlMpyVGET2mNpAg"
+  },
+  {
+    "title": "DTU Act",
+    "category": "studio",
+    "place": "DTU Photo Studio",
+    "date": "12 April 2025",
+    "cover": "dtu-act.jpg",
+    "url": "https://www.amazon.it/photos/share/2IR3N98MrIM4M7tO19Y6SgObQYpwpXCiaM9L9vsvPeS"
+  },
+  {
+    "title": "DTU Act - Zeus Ate My Daughter! - first show",
+    "category": "events",
+    "place": "DTU",
+    "date": "1 June 2025",
+    "cover": "zeus-first.jpg",
+    "url": "https://www.amazon.it/photos/share/vjXdLkdk4nt734EawGGi5DbV0jyei4YCiOOvOagw3eh"
+  },
+  {
+    "title": "DTU Act - Zeus Ate My Daughter! - second show",
+    "category": "events",
+    "place": "DTU",
+    "date": "8 June 2025",
+    "cover": "zeus-second.jpg",
+    "url": "https://www.amazon.it/photos/share/IuJ9m8pRCqByAJM9jWcKVTDoDfryChIILNQ77EMkFLs"
+  },
+  {
+    "title": "Erica",
+    "category": "studio",
+    "place": "DTU Photo Studio",
+    "date": "29 June 2025",
+    "cover": "erica.jpg",
+    "url": "https://www.amazon.it/photos/share/MWPjzNr1zlue3wNzjK1IzRxethnw0HJ2XXbNDTKSmyl"
+  },
+  {
+    "title": "Attila",
+    "category": "studio",
+    "place": "DTU Photo Studio",
+    "date": "11 April 2025",
+    "cover": "attila-studio.jpg",
+    "url": "https://www.amazon.it/photos/share/VlGf1x40hyDSnGpEalggOajrxYvldIyfvD8GaFXG3bm"
+  },
+  {
+    "title": "Loke as Zeus",
+    "category": "portraits",
+    "place": "DTU",
+    "date": "8 June 2025",
+    "cover": "loke.jpg",
+    "url": "https://www.amazon.it/photos/share/pD95YesJTc8ZHoR0HPDJcCU6TurIWVzJYmU2yHqvu57"
+  },
+  {
+    "title": "Attila at Reffen",
+    "category": "portraits",
+    "place": "Reffen, Copenhagen",
+    "date": "29 March 2025",
+    "cover": "attila-reffen.jpg",
+    "url": "https://www.amazon.it/photos/share/ax8U44bgMmYjJD1gpxr4Lc2Voa8ZZNAz5nw2b1BmRNk"
   }
 ]
