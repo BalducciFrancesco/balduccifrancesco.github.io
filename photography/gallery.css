@@ -154,18 +154,6 @@ a {
     color: #1a1a1a;
 }
 
-/* small arrow: the album opens on Amazon Photos, in a new tab */
-.album-link {
-    margin-left: 0.35em;
-    font-size: 0.8em;
-    color: rgba(60, 60, 60, 0.35);
-    transition: color 0.3s var(--ease);
-}
-
-.album-card:hover .album-link {
-    color: rgba(30, 30, 30, 0.85);
-}
-
 .album-meta {
     margin: 0.2rem 0 0;
     font-size: 0.75rem;

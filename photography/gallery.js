@@ -63,9 +63,7 @@ function albumCard(album) {
     cover.append(img);
 
     const info = el('div', 'album-info');
-    const title = el('h4', 'album-title', album.title);
-    title.append(el("span", "album-link"));
-    info.append(title);
+    info.append(el('h4', 'album-title', album.title));
     if (albumLine(album)) info.append(el('p', 'album-meta', albumLine(album)));
 
     card.append(cover, info);
