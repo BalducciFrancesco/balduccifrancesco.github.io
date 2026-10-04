@@ -1,5 +1,5 @@
-// Curated albums from gallery/albums.json, grouped by category in the order they are
-// listed there. Each card opens the album's shared Amazon Photos folder.
+// Curated albums from gallery/albums.json: one entry per category, each with its albums,
+// shown exactly in that order. Each card opens the album's shared Amazon Photos folder.
 
 const view = document.getElementById('view');
 const emptyNote = document.querySelector('.gallery-empty');
@@ -11,8 +11,14 @@ const el = (tag, className, text) => {
     return node;
 };
 
+// "2025-06" -> "June 2025"
+const formatMonth = (yearMonth) => {
+    const [year, month] = (yearMonth || '').split('-').map(Number);
+    if (!year || !month) return yearMonth || '';
+    return new Date(year, month - 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+};
 // "Copenhagen · June 2025"
-const albumLine = (a) => [a.place, a.date].filter(Boolean).join(' · ');
+const albumLine = (a) => [a.place, formatMonth(a.date)].filter(Boolean).join(' · ');
 const categoryId = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
 /* Progressive reveal: once a card is on screen and its cover has loaded it joins
@@ -70,16 +76,13 @@ function albumCard(album) {
     return card;
 }
 
-function render(albums) {
-    const categories = new Map();
-    albums.forEach((a) => categories.set(a.category, [...(categories.get(a.category) || []), a]));
-
-    categories.forEach((list, name) => {
+function render(categories) {
+    categories.forEach(({ category, albums }) => {
         const section = el('section', 'category');
-        section.id = categoryId(name);
+        section.id = categoryId(category);
         const grid = el('div', 'album-grid');
-        grid.append(...list.map(albumCard));
-        section.append(el('h3', 'category-title', name), grid);
+        grid.append(...albums.map(albumCard));
+        section.append(el('h3', 'category-title', category), grid);
         view.append(section);
     });
     view.querySelectorAll('.album-card').forEach((card) => observer.observe(card));
@@ -88,9 +91,11 @@ function render(albums) {
 fetch('gallery/albums.json')
     .then((res) => (res.ok ? res.json() : []))
     .catch(() => [])
-    .then((albums) => {
-        // an album shows up once it has both a link and a cover
-        const ready = albums.filter((a) => a.url && a.cover);
+    .then((categories) => {
+        // an album shows up once it has both a link and a cover; empty categories are skipped
+        const ready = categories
+            .map((c) => ({ ...c, albums: (c.albums || []).filter((a) => a.url && a.cover) }))
+            .filter((c) => c.albums.length);
         emptyNote.hidden = ready.length > 0;
         render(ready);
     });
