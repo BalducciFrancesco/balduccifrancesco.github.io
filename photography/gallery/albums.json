@@ -1,10 +1,10 @@
-{
-  "introfest": {
+[
+  {
     "title": "introfest",
+    "category": "parties",
     "place": "",
-    "date": "",
-    "description": "",
-    "cover": "",
-    "photos": {}
+    "date": "August 2026",
+    "cover": "introfest.jpg",
+    "url": ""
   }
-}
+]
