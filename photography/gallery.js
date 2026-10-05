@@ -1,6 +1,7 @@
 // Albums from gallery/gallery.json (built by build_gallery.py), in albums.json order.
-// gallery.html shows the album cards; gallery.html?album=<id> shows one album. Moving
-// between albums happens in place, without reloading the page, so it is instant.
+// gallery.html shows the album cards; gallery.html?album=<id> shows one album, its photos
+// in groups (an event, a place...). Moving between albums happens in place, without
+// reloading the page, so it is instant.
 
 // The fullscreen viewer loads on its own: if the CDN is unreachable the grid still works,
 // and a click simply opens the photo.
@@ -36,6 +37,9 @@ const formatMonth = (yearMonth) => {
     return new Date(year, month - 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 };
 const albumUrl = (album) => (album ? `?album=${encodeURIComponent(album.id)}` : 'gallery.html');
+// "DTU · August 2026"; a date that is not year-month ("Summer 2026") is shown as written
+const groupLine = (g) => [g.place, /^\d{4}-\d{2}$/.test(g.date || '') ? formatMonth(g.date) : g.date].filter(Boolean).join(' · ');
+const allPhotos = (album) => album.groups.flatMap((g) => g.photos);
 
 const thumbImg = ({ thumb, thumbWidth, thumbHeight }, alt, eager) => {
     const img = el('img');
@@ -94,7 +98,7 @@ function reveal(nodes) {
 
 const prefetched = new Set();
 function prefetch(album, count = 12) {
-    album.photos.slice(0, count).forEach(({ thumb }) => {
+    allPhotos(album).slice(0, count).forEach(({ thumb }) => {
         if (prefetched.has(thumb)) return;
         prefetched.add(thumb);
         const img = new Image();
@@ -104,21 +108,87 @@ function prefetch(album, count = 12) {
 }
 const whenIdle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 800));
 
-/* Index: one card per album */
+/* Index: one large card per album. Hovering a card (or, on touch screens, scrolling it
+   into view) plays its photos like stories, to invite a click. */
+
+const STORY_FRAME_MS = 1300;
+
+function story(card, album) {
+    const cover = card.querySelector('.album-cover');
+    const bars = card.querySelector('.story-bars');
+    let frames = null;
+    let timer = null;
+    let index = 0;
+
+    const show = (i) => {
+        index = i;
+        frames.forEach((f, k) => f.classList.toggle('active', k === i));
+        [...bars.children].forEach((bar, k) => {
+            bar.classList.toggle('done', k < i);
+            bar.classList.toggle('playing', k === i);
+        });
+    };
+
+    const play = () => {
+        if (timer || album.preview.length < 2) return;
+        if (!frames) {
+            // the first frame is the cover already on the card; the others are created on first play
+            frames = [cover.querySelector('img'), ...album.preview.slice(1).map((src) => {
+                const img = el('img', 'story-frame');
+                img.src = src;
+                img.alt = '';
+                img.decoding = 'async';
+                cover.append(img);
+                return img;
+            })];
+        }
+        card.classList.add('is-playing');
+        show(0);
+        timer = setInterval(() => show((index + 1) % frames.length), STORY_FRAME_MS);
+    };
+
+    const stop = () => {
+        clearInterval(timer);
+        timer = null;
+        card.classList.remove('is-playing');
+        if (frames) show(0);
+    };
+
+    return { play, stop };
+}
+
+const touchOnly = window.matchMedia('(hover: none)').matches;
+const storyViewer = new IntersectionObserver((entries) => {
+    entries.forEach(({ target, isIntersecting }) => (isIntersecting ? target.story.play() : target.story.stop()));
+}, { threshold: 0.7 });
 
 function albumCard(album) {
     const card = el('a', 'album-card');
     card.href = albumUrl(album);
-    card.addEventListener('pointerenter', () => prefetch(album), { once: true });
 
     const cover = el('div', 'album-cover');
-    cover.append(thumbImg(album.cover, album.title, true));
+    const img = thumbImg(album.cover, album.title, true);
+    img.classList.add('story-frame', 'active');
+    const bars = el('div', 'story-bars');
+    album.preview.forEach(() => bars.append(el('span')));
+    bars.style.setProperty('--frame', `${STORY_FRAME_MS}ms`);
+    cover.append(img, bars);
 
     const info = el('div', 'album-info');
-    info.append(el('h4', 'album-title', album.title));
-    info.append(el('p', 'album-meta', `${album.photos.length} photos`));
+    info.append(el('h3', 'album-title', album.title));
+    if (album.description) info.append(el('p', 'album-card-description', album.description));
+    const cta = el('span', 'album-cta', `View ${album.count} photos`);
+    cta.append(el('span', 'album-cta-arrow', '→'));
+    info.append(cta);
 
     card.append(cover, info);
+    card.story = story(card, album);
+    if (touchOnly) storyViewer.observe(card);
+    card.addEventListener('pointerenter', () => {
+        prefetch(album);
+        card.story.play();
+    });
+    card.addEventListener('pointerleave', () => card.story.stop());
     return card;
 }
 
@@ -132,30 +202,37 @@ function renderIndex() {
     lightbox = null;
 
     const grid = el('div', 'album-grid');
+    // even rows: four albums sit 2 x 2, otherwise up to three across
+    grid.style.setProperty('--cols', albums.length === 4 ? 2 : Math.min(albums.length, 3));
     grid.append(...albums.map(albumCard));
     view.replaceChildren(grid);
     reveal([...grid.children]);
-    whenIdle(() => albums.forEach((a) => prefetch(a, 8)));
+    // the story frames and each album's first photos, so hovering and opening feel instant
+    whenIdle(() => albums.forEach((a) => {
+        a.preview.forEach((src) => { new Image().src = src; });
+        prefetch(a, 8);
+    }));
 }
 
 /* Album: tabs to every album, justified grid, fullscreen viewer */
 
-function captionFor(p) {
+function captionFor(p, group) {
     const caption = el('div', 'photo-caption');
-    if (p.title) caption.append(el('p', 'caption-title', p.title));
+    const title = [p.title, group.title].filter(Boolean).join(' — ');
+    if (title) caption.append(el('p', 'caption-title', title));
     if (settingsLine(p)) caption.append(el('p', 'caption-settings', settingsLine(p)));
     const meta = [gearLine(p), formatMonth(p.date)].filter(Boolean).join(' — ');
     if (meta) caption.append(el('p', 'caption-meta', meta));
     return caption;
 }
 
-function photoTile(p, album, index) {
+function photoTile(p, album, group, index) {
     const link = el('a', 'photo-tile');
     link.href = p.src;
     link.dataset.pswpWidth = p.width;
     link.dataset.pswpHeight = p.height;
     link.style.setProperty('--ratio', p.width / p.height);
-    link.append(thumbImg(p, p.title || album.title, index < 8), captionFor(p));
+    link.append(thumbImg(p, p.title || group.title || album.title, index < 8), captionFor(p, group));
     if (settingsLine(p)) link.append(el('span', 'thumb-settings', settingsLine(p)));
     return link;
 }
@@ -183,12 +260,26 @@ function renderAlbum(album) {
     header.append(el('h2', 'album-heading', album.title));
     if (album.description) header.append(el('p', 'album-description', album.description));
 
-    const grid = el('div', 'photo-grid');
-    grid.id = 'gallery';
-    grid.append(...album.photos.map((p, i) => photoTile(p, album, i)));
-    view.replaceChildren(header, grid);
+    // one gallery element around every group, so the fullscreen viewer swipes through the whole album
+    const gallery = el('div', 'album-groups');
+    gallery.id = 'gallery';
+    let index = 0;
+    album.groups.forEach((group) => {
+        const section = el('section', 'photo-group');
+        if (group.title) {
+            const heading = el('header', 'group-header');
+            heading.append(el('h3', 'group-title', group.title));
+            if (groupLine(group)) heading.append(el('p', 'group-meta', groupLine(group)));
+            section.append(heading);
+        }
+        const grid = el('div', 'photo-grid');
+        grid.append(...group.photos.map((p) => photoTile(p, album, group, index++)));
+        section.append(grid);
+        gallery.append(section);
+    });
+    view.replaceChildren(header, gallery);
 
-    reveal([...grid.children]);
+    reveal([...gallery.querySelectorAll('.photo-tile')]);
     initLightbox();
     // get the neighbouring albums ready, so the next tab opens instantly
     whenIdle(() => albums.filter((a) => a !== album).forEach((a) => prefetch(a)));
@@ -201,7 +292,7 @@ async function initLightbox() {
     if (!PhotoSwipeLightbox || !document.getElementById('gallery')) return;
     lightbox = new PhotoSwipeLightbox({
         gallery: '#gallery',
-        children: 'a',
+        children: 'a.photo-tile',
         pswpModule: () => import(PHOTOSWIPE),
         preload: [1, 2],
         bgOpacity: 1,
