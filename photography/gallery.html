@@ -9,15 +9,19 @@
     <!-- own css's -->
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="gallery.css">
+    <!-- fullscreen viewer -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.css">
 </head>
 <body>
     <header class="navbar">
         <a class="back-link" href="../index.html" aria-label="Back to portfolio">&lsaquo;</a>
         <h1>Francesco Balducci</h1>
+        <!-- links to every album, shown inside an album -->
+        <nav class="album-tabs" id="album-tabs" aria-label="Albums" hidden></nav>
     </header>
 
     <main class="gallery-page">
-        <section class="gallery-intro">
+        <section class="gallery-intro" id="intro">
             <h2>Photography</h2>
             <p>Light, people and places, collected slowly.</p>
         </section>
@@ -32,6 +36,6 @@
         </footer>
     </main>
 
-    <script src="gallery.js"></script>
+    <script type="module" src="gallery.js"></script>
 </body>
 </html>

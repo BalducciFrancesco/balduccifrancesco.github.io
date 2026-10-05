@@ -1,8 +1,22 @@
-// Curated albums from gallery/albums.json: one entry per category, each with its albums,
-// shown exactly in that order. Each card opens the album's shared Amazon Photos folder.
+// Albums from gallery/gallery.json (built by build_gallery.py), in albums.json order.
+// gallery.html shows the album cards; gallery.html?album=<id> shows one album. Moving
+// between albums happens in place, without reloading the page, so it is instant.
+
+// The fullscreen viewer loads on its own: if the CDN is unreachable the grid still works,
+// and a click simply opens the photo.
+const PHOTOSWIPE = 'https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.esm.min.js';
+const lightboxModule = import('https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe-lightbox.esm.min.js')
+    .then((m) => m.default)
+    .catch(() => null);
 
 const view = document.getElementById('view');
+const intro = document.getElementById('intro');
+const tabs = document.getElementById('album-tabs');
+const back = document.querySelector('.back-link');
 const emptyNote = document.querySelector('.gallery-empty');
+
+let albums = [];
+let lightbox = null;
 
 const el = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -11,18 +25,33 @@ const el = (tag, className, text) => {
     return node;
 };
 
+// "1/250s · f/2.8 · ISO 400 · 35mm"
+const settingsLine = (p) => [p.exposure, p.aperture, p.iso, p.focal].filter(Boolean).join(' · ');
+// "Canon EOS 5D Mark III · EF50mm f/1.8 STM" or "Pentax Spotmatic F · Kodak Vision3 250D"
+const gearLine = (p) => [p.camera, p.lens, p.film].filter(Boolean).join(' · ');
 // "2025-06" -> "June 2025"
 const formatMonth = (yearMonth) => {
     const [year, month] = (yearMonth || '').split('-').map(Number);
     if (!year || !month) return yearMonth || '';
     return new Date(year, month - 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 };
-// "Copenhagen · June 2025"
-const albumLine = (a) => [a.place, formatMonth(a.date)].filter(Boolean).join(' · ');
-const categoryId = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+const albumUrl = (album) => (album ? `?album=${encodeURIComponent(album.id)}` : 'gallery.html');
 
-/* Progressive reveal: once a card is on screen and its cover has loaded it joins
-   a queue, and the queue shows one card at a time, in page order, a beat apart. */
+const thumbImg = ({ thumb, thumbWidth, thumbHeight }, alt, eager) => {
+    const img = el('img');
+    img.src = thumb;
+    img.width = thumbWidth;
+    img.height = thumbHeight;
+    img.alt = alt;
+    img.loading = eager ? 'eager' : 'lazy';
+    img.decoding = 'async';
+    return img;
+};
+
+/* Progressive reveal: once an item is on screen and its image has loaded it joins a
+   queue that shows one item at a time, in page order, a beat apart. Images already in
+   the browser cache (a revisited or prefetched album) appear at once, so moving back
+   and forth between albums never waits on the animation. */
 const queue = [];
 let revealing = false;
 
@@ -35,67 +64,198 @@ function revealNext() {
     }
     node.classList.add('is-visible');
     revealing = true;
-    setTimeout(revealNext, 90);
+    setTimeout(revealNext, 60);
 }
 
 const observer = new IntersectionObserver((entries) => {
     entries.filter((e) => e.isIntersecting).forEach(({ target }) => {
         observer.unobserve(target);
         const img = target.querySelector('img');
+        if (img.complete && img.naturalWidth) {
+            target.classList.add('is-visible');
+            return;
+        }
         const ready = () => {
             queue.push(target);
             if (!revealing) revealNext();
         };
-        if (img.complete) ready();
-        else {
-            img.addEventListener('load', ready, { once: true });
-            img.addEventListener('error', ready, { once: true });
-        }
+        img.addEventListener('load', ready, { once: true });
+        img.addEventListener('error', ready, { once: true });
     });
-}, { threshold: 0.1 });
+}, { threshold: 0.05 });
+
+function reveal(nodes) {
+    observer.disconnect();
+    queue.length = 0;
+    nodes.forEach((node) => observer.observe(node));
+}
+
+/* Background loading, so the next album is ready before it is opened */
+
+const prefetched = new Set();
+function prefetch(album, count = 12) {
+    album.photos.slice(0, count).forEach(({ thumb }) => {
+        if (prefetched.has(thumb)) return;
+        prefetched.add(thumb);
+        const img = new Image();
+        img.fetchPriority = 'low';
+        img.src = thumb;
+    });
+}
+const whenIdle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 800));
+
+/* Index: one card per album */
 
 function albumCard(album) {
     const card = el('a', 'album-card');
-    card.href = album.url;
-    card.target = '_blank';
-    card.rel = 'noopener';
+    card.href = albumUrl(album);
+    card.addEventListener('pointerenter', () => prefetch(album), { once: true });
 
     const cover = el('div', 'album-cover');
-    const img = el('img');
-    img.src = `gallery/covers/${album.cover}`;
-    img.alt = album.title;
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    cover.append(img);
+    cover.append(thumbImg(album.cover, album.title, true));
 
     const info = el('div', 'album-info');
     info.append(el('h4', 'album-title', album.title));
-    if (albumLine(album)) info.append(el('p', 'album-meta', albumLine(album)));
+    info.append(el('p', 'album-meta', `${album.photos.length} photos`));
 
     card.append(cover, info);
     return card;
 }
 
-function render(categories) {
-    categories.forEach(({ category, albums }) => {
-        const section = el('section', 'category');
-        section.id = categoryId(category);
-        const grid = el('div', 'album-grid');
-        grid.append(...albums.map(albumCard));
-        section.append(el('h3', 'category-title', category), grid);
-        view.append(section);
-    });
-    view.querySelectorAll('.album-card').forEach((card) => observer.observe(card));
+function renderIndex() {
+    document.title = 'Francesco Balducci - Photography';
+    intro.hidden = false;
+    tabs.hidden = true;
+    back.href = '../index.html';
+    back.setAttribute('aria-label', 'Back to portfolio');
+    lightbox?.destroy();
+    lightbox = null;
+
+    const grid = el('div', 'album-grid');
+    grid.append(...albums.map(albumCard));
+    view.replaceChildren(grid);
+    reveal([...grid.children]);
+    whenIdle(() => albums.forEach((a) => prefetch(a, 8)));
 }
 
-fetch('gallery/albums.json')
+/* Album: tabs to every album, justified grid, fullscreen viewer */
+
+function captionFor(p) {
+    const caption = el('div', 'photo-caption');
+    if (p.title) caption.append(el('p', 'caption-title', p.title));
+    if (settingsLine(p)) caption.append(el('p', 'caption-settings', settingsLine(p)));
+    const meta = [gearLine(p), formatMonth(p.date)].filter(Boolean).join(' — ');
+    if (meta) caption.append(el('p', 'caption-meta', meta));
+    return caption;
+}
+
+function photoTile(p, album, index) {
+    const link = el('a', 'photo-tile');
+    link.href = p.src;
+    link.dataset.pswpWidth = p.width;
+    link.dataset.pswpHeight = p.height;
+    link.style.setProperty('--ratio', p.width / p.height);
+    link.append(thumbImg(p, p.title || album.title, index < 8), captionFor(p));
+    if (settingsLine(p)) link.append(el('span', 'thumb-settings', settingsLine(p)));
+    return link;
+}
+
+function renderTabs(current) {
+    tabs.replaceChildren(...albums.map((album) => {
+        const tab = el('a', album === current ? 'album-tab active' : 'album-tab', album.title);
+        tab.href = albumUrl(album);
+        if (album === current) tab.setAttribute('aria-current', 'page');
+        tab.addEventListener('pointerenter', () => prefetch(album), { once: true });
+        return tab;
+    }));
+    tabs.hidden = false;
+    tabs.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+
+function renderAlbum(album) {
+    document.title = `${album.title} - Francesco Balducci`;
+    intro.hidden = true;
+    back.href = 'gallery.html';
+    back.setAttribute('aria-label', 'Back to all albums');
+    renderTabs(album);
+
+    const header = el('section', 'album-header');
+    header.append(el('h2', 'album-heading', album.title));
+    if (album.description) header.append(el('p', 'album-description', album.description));
+
+    const grid = el('div', 'photo-grid');
+    grid.id = 'gallery';
+    grid.append(...album.photos.map((p, i) => photoTile(p, album, i)));
+    view.replaceChildren(header, grid);
+
+    reveal([...grid.children]);
+    initLightbox();
+    // get the neighbouring albums ready, so the next tab opens instantly
+    whenIdle(() => albums.filter((a) => a !== album).forEach((a) => prefetch(a)));
+}
+
+async function initLightbox() {
+    const PhotoSwipeLightbox = await lightboxModule;
+    lightbox?.destroy();
+    lightbox = null;
+    if (!PhotoSwipeLightbox || !document.getElementById('gallery')) return;
+    lightbox = new PhotoSwipeLightbox({
+        gallery: '#gallery',
+        children: 'a',
+        pswpModule: () => import(PHOTOSWIPE),
+        preload: [1, 2],
+        bgOpacity: 1,
+        showHideAnimationType: 'zoom',
+        imageClickAction: 'close',
+        tapAction: 'toggle-controls',
+        zoom: false,
+        padding: { top: 40, bottom: 110, left: 16, right: 16 },
+    });
+
+    // Show the hidden .photo-caption of the current slide under the image
+    lightbox.on('uiRegister', () => {
+        lightbox.pswp.ui.registerElement({
+            name: 'exif-caption',
+            order: 9,
+            isButton: false,
+            appendTo: 'root',
+            onInit: (node, pswp) => {
+                pswp.on('change', () => {
+                    const caption = pswp.currSlide.data.element?.querySelector('.photo-caption');
+                    node.replaceChildren(...(caption ? [caption.cloneNode(true)] : []));
+                });
+            },
+        });
+    });
+    lightbox.init();
+}
+
+/* Navigation inside the page: album links swap the view instead of reloading */
+
+function show() {
+    const id = new URLSearchParams(location.search).get('album');
+    const album = albums.find((a) => a.id === id);
+    if (album) renderAlbum(album);
+    else renderIndex();
+}
+
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('a.album-card, a.album-tab, a.back-link[href="gallery.html"]');
+    if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    event.preventDefault();
+    history.pushState(null, '', link.getAttribute('href'));
+    window.scrollTo(0, 0);
+    show();
+});
+window.addEventListener('popstate', show);
+
+fetch('gallery/gallery.json')
     .then((res) => (res.ok ? res.json() : []))
     .catch(() => [])
-    .then((categories) => {
-        // an album shows up once it has both a link and a cover; empty categories are skipped
-        const ready = categories
-            .map((c) => ({ ...c, albums: (c.albums || []).filter((a) => a.url && a.cover) }))
-            .filter((c) => c.albums.length);
-        emptyNote.hidden = ready.length > 0;
-        render(ready);
+    .then((data) => {
+        albums = data;
+        emptyNote.hidden = albums.length > 0;
+        show();
+        // load the fullscreen viewer early, so the first photo opens without a delay
+        whenIdle(() => import(PHOTOSWIPE).catch(() => {}));
     });

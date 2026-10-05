@@ -1,25 +1,25 @@
-# Prepares album covers whenever covers or albums.json are pushed: shrinks them,
-# strips all metadata (including GPS), checks albums.json, and commits the result.
-name: Prepare photo covers
+# Rebuilds the photo gallery whenever photos or albums.json are pushed:
+# strips GPS data, makes thumbnails, updates gallery.json, and commits the result.
+name: Build photo gallery
 
 on:
   push:
     paths:
-      - "photography/gallery/covers/**"
+      - "photography/gallery/full/**"
       - "photography/gallery/albums.json"
-      - "photography/prepare_covers.py"
+      - "photography/build_gallery.py"
   workflow_dispatch:
 
 permissions:
   contents: write
 
-# one run per branch at a time, so two quick uploads don't race each other
+# one build per branch at a time, so two quick uploads don't race each other
 concurrency:
   group: gallery-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  covers:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -28,21 +28,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install pillow
+      - name: Install Pillow and exiftool
+        run: |
+          pip install pillow
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends libimage-exiftool-perl
 
-      - name: Prepare covers
-        run: python3 photography/prepare_covers.py
+      - name: Build gallery
+        run: python3 photography/build_gallery.py
 
       - name: Commit changes
         run: |
-          git add photography/gallery/covers
+          git add photography/gallery
           if git diff --cached --quiet; then
-            echo "Covers already up to date"
+            echo "Gallery already up to date"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Prepare photo covers"
+          git commit -m "Build photo gallery"
           # pick up anything pushed while this was running
           git pull --rebase
           git push
