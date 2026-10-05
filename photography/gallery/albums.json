@@ -1,1 +1,102 @@
-[]
+[
+  {
+    "id": "events",
+    "title": "Events",
+    "description": "",
+    "cover": "",
+    "groups": [
+      {
+        "id": "dtu-italian-society-compute-event",
+        "title": "DTU Italian Society - Compute Event",
+        "place": "",
+        "date": ""
+      },
+      {
+        "id": "dtu-italian-society-student-job-event",
+        "title": "DTU Italian Society - Student Job Event",
+        "place": "",
+        "date": ""
+      },
+      {
+        "id": "zeus-ate-my-daughter-premiere",
+        "title": "Zeus Ate My Daughter - Premiere",
+        "place": "",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": "parties",
+    "title": "Parties",
+    "description": "",
+    "cover": "",
+    "groups": [
+      {
+        "id": "introfest",
+        "title": "Introfest",
+        "place": "",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": "sports",
+    "title": "Sports",
+    "description": "",
+    "cover": "",
+    "groups": [
+      {
+        "id": "surf",
+        "title": "Surf",
+        "place": "",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": "studio-portraits",
+    "title": "Studio Portraits",
+    "description": "",
+    "cover": "",
+    "groups": [
+      {
+        "id": "attila",
+        "title": "Attila",
+        "place": "",
+        "date": ""
+      },
+      {
+        "id": "dtu-act",
+        "title": "DTU Act",
+        "place": "",
+        "date": ""
+      },
+      {
+        "id": "dtu-management-council",
+        "title": "DTU Management Council",
+        "place": "",
+        "date": ""
+      },
+      {
+        "id": "erica",
+        "title": "Erica",
+        "place": "",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": "travel",
+    "title": "Travel",
+    "description": "",
+    "cover": "",
+    "groups": [
+      {
+        "id": "finnish-lapland",
+        "title": "Finnish Lapland",
+        "place": "",
+        "date": ""
+      }
+    ]
+  }
+]
