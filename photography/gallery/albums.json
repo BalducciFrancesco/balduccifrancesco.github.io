@@ -1,31 +1,5 @@
 [
   {
-    "id": "events",
-    "title": "Events",
-    "description": "",
-    "cover": "",
-    "groups": [
-      {
-        "id": "dtu-italian-society-compute-event",
-        "title": "DTU Italian Society - Compute Event",
-        "place": "",
-        "date": ""
-      },
-      {
-        "id": "dtu-italian-society-student-job-event",
-        "title": "DTU Italian Society - Student Job Event",
-        "place": "",
-        "date": ""
-      },
-      {
-        "id": "zeus-ate-my-daughter-premiere",
-        "title": "Zeus Ate My Daughter - Premiere",
-        "place": "",
-        "date": ""
-      }
-    ]
-  },
-  {
     "id": "parties",
     "title": "Parties",
     "description": "",
@@ -33,23 +7,35 @@
     "groups": [
       {
         "id": "introfest",
-        "title": "Introfest",
-        "place": "",
-        "date": ""
+        "title": "IntroFest Fall '26",
+        "place": "DTU",
+        "date": "2026-08"
       }
     ]
   },
   {
-    "id": "sports",
-    "title": "Sports",
+    "id": "events",
+    "title": "Events",
     "description": "",
-    "cover": "",
+    "cover": "IMG_9037.jpg",
     "groups": [
       {
-        "id": "surf",
-        "title": "Surf",
-        "place": "",
-        "date": ""
+        "id": "zeus-ate-my-daughter-premiere",
+        "title": "DTU Act - Zeus Ate My Daughter! - Premiere",
+        "place": "DTU",
+        "date": "2025-06"
+      },
+      {
+        "id": "dtu-italian-society-compute-event",
+        "title": "DTU Italian Society at Compute",
+        "place": "DTU",
+        "date": "2025-11"
+      },
+      {
+        "id": "dtu-italian-society-student-job-event",
+        "title": "DTU Italian Society for Student Jobs",
+        "place": "Skylab, DTU",
+        "date": "2025-11"
       }
     ]
   },
@@ -57,31 +43,45 @@
     "id": "studio-portraits",
     "title": "Studio Portraits",
     "description": "",
-    "cover": "",
+    "cover": "IMG_8940.jpg",
     "groups": [
       {
-        "id": "attila",
-        "title": "Attila",
-        "place": "",
-        "date": ""
+        "id": "dtu-management-council",
+        "title": "DTU Management Council",
+        "place": "DTU Photo Studio",
+        "date": "2025-04"
       },
       {
         "id": "dtu-act",
         "title": "DTU Act",
-        "place": "",
-        "date": ""
-      },
-      {
-        "id": "dtu-management-council",
-        "title": "DTU Management Council",
-        "place": "",
-        "date": ""
+        "place": "DTU Photo Studio",
+        "date": "2025-04"
       },
       {
         "id": "erica",
         "title": "Erica",
-        "place": "",
-        "date": ""
+        "place": "DTU Photo Studio",
+        "date": "2025-06"
+      },
+      {
+        "id": "attila",
+        "title": "Attila",
+        "place": "DTU Photo Studio",
+        "date": "2025-04"
+      }
+    ]
+  },
+  {
+    "id": "sports",
+    "title": "Sports",
+    "description": "",
+    "cover": "IMG_2104.jpg",
+    "groups": [
+      {
+        "id": "surf",
+        "title": "Surf",
+        "place": "Gold Coast",
+        "date": "2026-02"
       }
     ]
   },
@@ -93,9 +93,9 @@
     "groups": [
       {
         "id": "finnish-lapland",
-        "title": "Finnish Lapland",
-        "place": "",
-        "date": ""
+        "title": "ESN adventure to Finnish Lapland",
+        "place": "Levi, Finland",
+        "date": "2025-11"
       }
     ]
   }
