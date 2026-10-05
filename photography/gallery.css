@@ -242,15 +242,6 @@ a {
     transform: translateX(5px);
 }
 
-.gallery-intro .gallery-hint {
-    margin: 1.75rem 0 0;
-    font-style: normal;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: rgba(60, 60, 60, 0.55);
-}
-
 /* album bar: a second row of the sticky toolbar, one link per album */
 .album-tabs {
     flex-basis: 100%;
