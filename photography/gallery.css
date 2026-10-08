@@ -348,23 +348,25 @@ a {
     order: 2;
 }
 
-/* justified rows: each tile grows in proportion to its aspect ratio, so a row fills the width at one height */
+/* justified rows: gallery.js splits each group into rows that all span the full width;
+   inside a row, tiles share the width in proportion to their aspect ratio, so they line up at one height */
 .photo-grid {
-    --row: 260px;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 8px;
 }
 
-/* swallows the leftover space so the last row stays left-aligned */
-.photo-grid::after {
-    content: "";
-    flex-grow: 1000;
+.photo-row {
+    display: flex;
+    gap: inherit;
+    width: 100%;
+    margin: 0 auto;
 }
 
 .photo-tile {
     position: relative;
-    flex: var(--ratio) 1 calc(var(--ratio) * var(--row));
+    flex: var(--ratio) 1 0;
+    min-width: 0;
     overflow: hidden;
     border-radius: 2px;
     background: rgba(0, 0, 0, 0.04);
@@ -494,7 +496,6 @@ a {
     }
 
     .photo-grid {
-        --row: 200px;
         gap: 4px;
     }
 

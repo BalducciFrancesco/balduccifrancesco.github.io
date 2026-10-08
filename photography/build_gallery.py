@@ -25,7 +25,8 @@ Photos are shown in file-name order, so rename them (01.jpg, 02.jpg...) to reord
 
 gallery/albums.json is yours to edit: the albums in page order, each with its
 title, a one-line description shown on its card, a cover (a photo's file name),
-and its groups in page order, each with a title, place and date. Dates are
+and its groups, each with a title, place and date; groups are shown newest
+first (same-month groups in the order listed here). Dates are
 year-month ("2026-08") or any text ("Summer 2026"); left empty, the month the
 photos were taken is used. New albums and groups are added at the end, and your
 values are never overwritten. Per-photo fields (title, camera, lens, film...)
@@ -224,6 +225,10 @@ def main():
             })
         if not groups:
             continue
+        # newest group first: by its year-month date, or its latest photo when the date is free
+        # text; ungrouped photos stay on top, and groups from the same month keep albums.json order
+        month = lambda g: g["date"] if re.fullmatch(r"\d{4}-\d{2}", g["date"]) else max((p.get("date", "") for p in g["photos"]), default="")
+        groups.sort(key=lambda g: (not g["title"], month(g)), reverse=True)
 
         every = [p for g in groups for p in g["photos"]]
         cover_name = Path(meta.get("cover") or "").stem

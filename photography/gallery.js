@@ -41,6 +41,11 @@ const albumUrl = (album) => (album ? `?album=${encodeURIComponent(album.id)}` : 
 const groupLine = (g) => [g.place, /^\d{4}-\d{2}$/.test(g.date || '') ? formatMonth(g.date) : g.date].filter(Boolean).join(' · ');
 const allPhotos = (album) => album.groups.flatMap((g) => g.photos);
 
+// Groups are shown newest first: by their year-month date, or by their latest photo when
+// the date is free text ("Summer 2026"). Photos outside any group stay on top.
+const groupMonth = (g) => (/^\d{4}-\d{2}$/.test(g.date || '') ? g.date : g.photos.map((p) => p.date || '').sort().at(-1) || '');
+const newestFirst = (a, b) => (!a.title - !b.title) * -1 || groupMonth(b).localeCompare(groupMonth(a));
+
 const thumbImg = ({ thumb, thumbWidth, thumbHeight }, alt, eager) => {
     const img = el('img');
     img.src = thumb;
@@ -231,11 +236,72 @@ function photoTile(p, album, group, index) {
     link.href = p.src;
     link.dataset.pswpWidth = p.width;
     link.dataset.pswpHeight = p.height;
-    link.style.setProperty('--ratio', p.width / p.height);
+    link.ratio = p.width / p.height;
+    link.style.setProperty('--ratio', link.ratio);
     link.append(thumbImg(p, p.title || group.title || album.title, index < 8), captionFor(p, group));
     if (settingsLine(p)) link.append(el('span', 'thumb-settings', settingsLine(p)));
     return link;
 }
+
+/* Balanced justified rows: each group is split into as many rows as its photos need at
+   the target height, choosing the breaks so every row spans the full width (the last one
+   included), each at its own height. Redone whenever the grid's width changes. */
+
+const targetRowHeight = () => (window.innerWidth < 640 ? 180 : 260);
+
+// Split values into k consecutive runs whose sums are as even as possible.
+function partition(values, k) {
+    const n = values.length;
+    const prefix = [0];
+    values.forEach((v) => prefix.push(prefix.at(-1) + v));
+    const ideal = prefix[n] / k;
+    const cost = (i, j) => (prefix[j] - prefix[i] - ideal) ** 2;
+    const best = Array.from({ length: k + 1 }, () => new Array(n + 1).fill(Infinity));
+    const cut = Array.from({ length: k + 1 }, () => new Array(n + 1).fill(0));
+    best[0][0] = 0;
+    for (let rows = 1; rows <= k; rows++) {
+        for (let end = rows; end <= n; end++) {
+            for (let start = rows - 1; start < end; start++) {
+                const total = best[rows - 1][start] + cost(start, end);
+                if (total < best[rows][end]) {
+                    best[rows][end] = total;
+                    cut[rows][end] = start;
+                }
+            }
+        }
+    }
+    const runs = [];
+    for (let rows = k, end = n; rows > 0; rows--) {
+        const start = cut[rows][end];
+        runs.unshift([start, end]);
+        end = start;
+    }
+    return runs;
+}
+
+function layoutRows(grid) {
+    const width = grid.clientWidth;
+    if (!width || width === grid.laidOutWidth) return;
+    grid.laidOutWidth = width;
+
+    const gap = parseFloat(getComputedStyle(grid).rowGap) || 0;
+    const ratios = grid.tiles.map((t) => t.ratio);
+    const total = ratios.reduce((a, b) => a + b, 0);
+    const count = Math.min(ratios.length, Math.max(1, Math.round((total * targetRowHeight()) / width)));
+    // a row of one or two tall photos would grow huge at full width; cap it near the screen height
+    const maxHeight = window.innerHeight * 0.8;
+
+    grid.replaceChildren(...partition(ratios, count).map(([start, end]) => {
+        const row = el('div', 'photo-row');
+        const sum = ratios.slice(start, end).reduce((a, b) => a + b, 0);
+        const gaps = gap * (end - start - 1);
+        if ((width - gaps) / sum > maxHeight) row.style.maxWidth = `${maxHeight * sum + gaps}px`;
+        row.append(...grid.tiles.slice(start, end));
+        return row;
+    }));
+}
+
+const rowsObserver = new ResizeObserver((entries) => entries.forEach(({ target }) => layoutRows(target)));
 
 function renderTabs(current) {
     tabs.replaceChildren(...albums.map((album) => {
@@ -273,7 +339,9 @@ function renderAlbum(album) {
             section.append(heading);
         }
         const grid = el('div', 'photo-grid');
-        grid.append(...group.photos.map((p) => photoTile(p, album, group, index++)));
+        grid.tiles = group.photos.map((p) => photoTile(p, album, group, index++));
+        grid.append(...grid.tiles);
+        rowsObserver.observe(grid);
         section.append(grid);
         gallery.append(section);
     });
@@ -345,6 +413,7 @@ fetch('gallery/gallery.json')
     .catch(() => [])
     .then((data) => {
         albums = data;
+        albums.forEach((album) => album.groups.sort(newestFirst));
         emptyNote.hidden = albums.length > 0;
         show();
         // load the fullscreen viewer early, so the first photo opens without a delay
