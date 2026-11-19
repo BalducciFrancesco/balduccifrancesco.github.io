@@ -13,8 +13,14 @@
       },
       {
         "id": "chateau-motel-farra-opening",
-        "title": "Chateau Motel - Farra Opening",
-        "place": "",
+        "title": "Farra Opening",
+        "place": "Chateau Motel",
+        "date": ""
+      },
+      {
+        "id": "project-diwali",
+        "title": "Project Diwali",
+        "place": "Dorsia Club",
         "date": ""
       }
     ]
